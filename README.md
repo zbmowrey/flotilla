@@ -28,17 +28,6 @@ With my own two hands. And maybe yours.
 - CD into the folder
 - Edit the env file as appropriate for your use-case
 - `docker-compose up -d`
-- Edit your hosts file (/etc/hosts or c:\windows\system32\drivers\etc\hosts) to add the dashboard domain: dashboard.local. 
-- Visit dashboard.local in your browser. 
-- The various downloaders are available at "localhost:$port": 
-  - These are customizable in the .env file. 
-  - SABNzbd: 8080
-  - NZBGet: 8081
-  - Transmission: 8082
-  - Radarr: 8083
-  - Lidarr: 8084
-  - Sonarr: 8085
-  - Bazarr: 8086
-  - Headphones: 8087
-  - Mylar: 8088
-  - LazyLibrarian: 8089
+- See the .env file for ports for the various downloaders
+- If you don't want rutorrent + VPN, remove 'gluetun' and 'rutorrent' blocked from the docker-compose.yml.
+- If you do want them, look up gluetun docs and configure your provider. 
