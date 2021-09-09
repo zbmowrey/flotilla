@@ -1,0 +1,238 @@
+version: '3.7'
+
+# For ports, see .env file
+
+# Web UI Stack:
+#   Ombi      for managing tv/movie requests
+#   Tautulli  for viewing Plex usage stats
+
+# Usenet Stack:
+#   SabNZBd  usenet download client
+#   Sonarr   tv manager
+#   Radarr   movie manager
+#   Bazarr   movie/tv subtitle manager
+#   Lidarr   music manager
+
+# Torrent Stack:
+#   Gluetun   a vpn pass-through container
+#   ruTorrent a bittorrent client; all traffic is routed through gluetun (vpn).
+#   TODO - PIA assigns a dynamic port on connection - need a way to automate setting this in ruTorrent afterward.
+#   Absent this piece, ruTorrent won't be able to allow inbound connections - I won't be able to seed.
+
+services:
+
+  # Media Requests
+
+  ombi:
+    image: ghcr.io/linuxserver/ombi
+    container_name: ombi
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - BASE_URL=/ombi
+    volumes:
+      - ${FLOTILLA_DIR}/ombi:/config
+    ports:
+      - ${OMBI_UI_PORT}:3579
+    restart: unless-stopped
+
+  # Plex Stats
+
+  tautulli:
+    image: ghcr.io/linuxserver/tautulli
+    container_name: tautulli
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${FLOTILLA_DIR}/tautulli:/config
+    ports:
+      - ${TAUTULLI_UI_PORT}:8181
+    restart: unless-stopped
+
+  # NZB Download Client
+
+  sabnzbd:
+    image: ghcr.io/linuxserver/sabnzbd
+    container_name: sabnzbd
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${FLOTILLA_DIR}/sabnzbd:/config
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+      - ${SABNZBD_TEMP_DIR}:/incomplete-downloads
+    ports:
+      - ${SABNZBD_UI_PORT}:8080
+    restart: unless-stopped
+
+  # Television
+
+  sonarr:
+    image: ghcr.io/linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${FLOTILLA_DIR}/sonarr:/config
+      - ${TV_DIR}:/tv
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+    ports:
+      - ${SONARR_UI_PORT}:8989
+    restart: unless-stopped
+
+  # Movies
+
+  radarr:
+    image: ghcr.io/linuxserver/radarr
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${FLOTILLA_DIR}/radarr:/config
+      - ${MOVIES_DIR}:/movies
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+    ports:
+      - ${RADARR_UI_PORT}:7878
+    restart: unless-stopped
+
+  headphones:
+    image: ghcr.io/linuxserver/headphones
+    container_name: headphones
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ${FLOTILLA_DIR}/lidarr:/config
+      - ${MUSIC_DIR}:/music
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+    ports:
+      - ${HEADPHONES_UI_PORT}:8181
+    restart: unless-stopped
+
+  lidarr:
+    image: ghcr.io/linuxserver/lidarr
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${FLOTILLA_DIR}/lidarr:/config
+      - ${MUSIC_DIR}:/music
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+    ports:
+      - ${LIDARR_UI_PORT}:8686
+    restart: unless-stopped
+
+  # Subtitles
+
+  bazarr:
+    image: ghcr.io/linuxserver/bazarr
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${FLOTILLA_DIR}/bazarr:/config
+      - ${MOVIES_DIR}:/movies
+      - ${TV_DIR}:/tv
+    ports:
+      - ${BAZARR_UI_PORT}:6767
+    restart: unless-stopped
+
+  # Mylar3 - comic books
+
+  mylar3:
+    image: ghcr.io/linuxserver/mylar3
+    container_name: mylar3
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${FLOTILLA_DIR}/mylar3:/config
+      - ${COMICS_DIR}:/comics
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+    ports:
+      - ${MYLAR3_UI_PORT}:8090
+    restart: unless-stopped
+
+  # LazyLibrarian
+
+  lazylibrarian:
+    image: ghcr.io/linuxserver/lazylibrarian
+    container_name: lazylibrarian
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ${FLOTILLA_DIR}/lazylibrarian:/config
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+      - ${AUDIOBOOKS_DIR}:/audiobooks
+      - ${BOOKS_DIR}:/books
+    ports:
+      - ${LAZY_LIBRARIAN_UI_PORT}:5299
+    restart: unless-stopped
+
+  # VPN Connection
+
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    network_mode: bridge
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+      - ${GLUETUN_API_PORT}:8000/tcp # HTTP control server
+      - ${RUTORRENT_UI_PORT}:80 # ruTorrent Web UI
+    #      - 5001:5000
+    #      - 51413:51413
+    #      - 6881:6881/udp
+    volumes:
+      - ${FLOTILLA_DIR}/gluetun:/gluetun
+    secrets:
+      - openvpn_user
+      - openvpn_password
+    environment:
+      - REGION=CA Toronto,CA Montreal,CA Ontario,CA Vancouver
+      - PORT_FORWARDING=on
+      - PORT_FORWARDING_STATUS_FILE=/gluetun/forwarded_port
+      - VPNSP=private internet access
+      - TZ=America/New_York
+    restart: always
+
+  # Torrent Client
+
+  rutorrent:
+    image: ghcr.io/linuxserver/rutorrent
+    container_name: rutorrent
+    depends_on:
+      - gluetun
+    network_mode: "service:gluetun"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ${FLOTILLA_DIR}/rutorrent:/config
+      - ${TORRENT_DOWNLOAD_DIR}:/downloads
+      - ${TORRENT_WATCH_DIR}:/watch
+    restart: unless-stopped
+
+secrets:
+  openvpn_user:
+    file: ./openvpn_user
+  openvpn_password:
+    file: ./openvpn_password
