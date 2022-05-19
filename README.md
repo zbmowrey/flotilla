@@ -29,5 +29,3 @@ With my own two hands. And maybe yours.
 - Edit the env file as appropriate for your use-case
 - `docker-compose up -d`
 - See the .env file for ports for the various downloaders
-- If you don't want rutorrent + VPN, remove 'gluetun' and 'rutorrent' blocked from the docker-compose.yml.
-- If you do want them, look up gluetun docs and configure your provider. 
