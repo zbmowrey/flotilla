@@ -7,19 +7,27 @@ version: '3.7'
 #   Tautulli  for viewing Plex usage stats
 
 # Usenet Stack:
-#   SabNZBd  usenet download client
-#   Sonarr   tv manager
-#   Radarr   movie manager
-#   Bazarr   movie/tv subtitle manager
-#   Lidarr   music manager
-
-# Torrent Stack:
-#   Gluetun   a vpn pass-through container
-#   ruTorrent a bittorrent client; all traffic is routed through gluetun (vpn).
-#   TODO - PIA assigns a dynamic port on connection - need a way to automate setting this in ruTorrent afterward.
-#   Absent this piece, ruTorrent won't be able to allow inbound connections - I won't be able to seed.
+#   SabNZBd       usenet download client
+#   Transmission  torrent download client w/openvpn
+#   Sonarr        tv manager
+#   Radarr        movie manager
+#   Bazarr        movie/tv subtitle manager
+#   Lidarr        music manager
 
 services:
+
+  mysql:
+    image: mysql:5.7-debian
+    ports:
+      - 3306:3306
+    volumes:
+      - ~/.flotilla/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_PASSWORD=secret
+      - MYSQL_USER=user
+      - MYSQL_DATABASE=fortunewall
+
   # Media Requests
   ombi:
     image: ghcr.io/linuxserver/ombi
@@ -78,8 +86,8 @@ services:
       - TZ=America/New_York
     volumes:
       - ${FLOTILLA_DIR}/prowlarr:/config
-      - ${TRANSMISSION_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
     ports:
       - ${PROWLARR_UI_PORT}:9696
     restart: unless-stopped
@@ -97,8 +105,8 @@ services:
       - ${FLOTILLA_DIR}/sonarr:/config
       - ${TV_DIR}:/tv
       - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TRANSMISSION_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_TV_WATCH_DIR}:/torrent_watch
+      - ${TRANSMISSION_TV_COMPLETE_DIR}:/torrent_complete
     ports:
       - ${SONARR_UI_PORT}:8989
     restart: unless-stopped
@@ -116,8 +124,8 @@ services:
       - ${FLOTILLA_DIR}/radarr:/config
       - ${MOVIES_DIR}:/movies
       - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TRANSMISSION_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
     ports:
       - ${RADARR_UI_PORT}:7878
     restart: unless-stopped
@@ -135,8 +143,8 @@ services:
       - ${FLOTILLA_DIR}/lidarr:/config
       - ${MUSIC_DIR}:/music
       - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TRANSMISSION_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
     ports:
       - ${LIDARR_UI_PORT}:8686
     restart: unless-stopped
@@ -154,8 +162,8 @@ services:
       - ${FLOTILLA_DIR}/bazarr:/config
       - ${MOVIES_DIR}:/movies
       - ${TV_DIR}:/tv
-      - ${TRANSMISSION_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
     ports:
       - ${BAZARR_UI_PORT}:6767
     restart: unless-stopped
@@ -174,23 +182,23 @@ services:
       - ${SABNZBD_COMPLETE_DIR}:/downloads
       - ${BOOKS_DIR}:/books
       - ${AUDIOBOOKS_DIR}:/audiobooks
-      - ${TRANSMISSION_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
     ports:
       - ${LAZY_LIBRARIAN_UI_PORT}:5299
     restart: unless-stopped
 
-  transmission:
+  transmission_tv:
     image: haugene/transmission-openvpn:latest
-    container_name: transmission
+    container_name: transmission_tv
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
     volumes:
-      - ${FLOTILLA_DIR}/transmission:/data
-      - ${TRANSMISSION_TEMP_DIR}:/torrent_temp
-      - ${TRANSMISSION_COMPLETE_DIR}:/torrent_complete
-      - ${TRANSMISSION_WATCH_DIR}:/torrent_watch
+      - ${FLOTILLA_DIR}/transmission_tv:/data
+      - ${TRANSMISSION_TV_TEMP_DIR}:/torrent_temp
+      - ${TRANSMISSION_TV_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_TV_WATCH_DIR}:/torrent_watch
     environment:
       - OPENVPN_PROVIDER=PIA
       - OPENVPN_CONFIG=us_florida,us_atlanta,ca_ontario,ca_vancouver,ca_montreal
@@ -211,7 +219,41 @@ services:
       options:
         max-size: 10m
     ports:
-      - ${TRANSMISSION_UI_PORT}:9091
+      - ${TRANSMISSION_TV_UI_PORT}:9091
+
+  transmission_movies:
+    image: haugene/transmission-openvpn:latest
+    container_name: transmission_movies
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ${FLOTILLA_DIR}/transmission_movies:/data
+      - ${TRANSMISSION_MOVIES_TEMP_DIR}:/torrent_temp
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
+    environment:
+      - OPENVPN_PROVIDER=PIA
+      - OPENVPN_CONFIG=us_florida,us_atlanta,ca_ontario,ca_vancouver,ca_montreal
+      - OPENVPN_USERNAME=${PIA_USER}
+      - OPENVPN_PASSWORD=${PIA_PASS}
+      - LOCAL_NETWORK=192.168.0.0/16
+      - TRANSMISSION_DOWNLOAD_DIR=/torrent_complete
+      - TRANSMISSION_DOWNLOAD_QUEUE_SIZE=8
+      - TRANSMISSION_INCOMPLETE_DIR=/torrent_temp
+      - TRANSMISSION_RATIO_LIMIT=4
+      - TRANSMISSION_RATIO_LIMIT_ENABLED=true
+      - TRANSMISSION_WATCH_DIR=/torrent_watch
+      - TRANSMISSION_WATCH_DIR_FORCE_GENERIC=true
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_ENABLED=true
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_FILENAME=/data/transmission-home/postprocess.sh
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+    ports:
+      - ${TRANSMISSION_MOVIES_UI_PORT}:9091
+
 
   # Catches mail from various apps and puts them into one dashboard.
 
