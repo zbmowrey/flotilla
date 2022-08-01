@@ -16,18 +16,6 @@ version: '3.7'
 
 services:
 
-  mysql:
-    image: mysql:5.7-debian
-    ports:
-      - 3306:3306
-    volumes:
-      - ~/.flotilla/mysql:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_PASSWORD=secret
-      - MYSQL_USER=user
-      - MYSQL_DATABASE=fortunewall
-
   # Media Requests
   ombi:
     image: ghcr.io/linuxserver/ombi
