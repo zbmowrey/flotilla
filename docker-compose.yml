@@ -203,8 +203,10 @@ services:
       - HTTP_CONTROL_SERVER_LOG=off
       - TZ=${TZ}
     volumes:
+      # gluetun reads /gluetun/auth/config.toml from this bind mount. Keep the
+      # repo-versioned canonical copy at config/gluetun-auth.toml in sync with
+      # ${FLOTILLA_DIR}/gluetun/auth/config.toml on the NAS.
       - ${FLOTILLA_DIR}/gluetun:/gluetun
-      - ./config/gluetun-auth.toml:/gluetun/auth/config.toml:ro
     ports:
       - "${QBITTORRENT_UI_PORT}:8080"   # qbittorrent webUI (exposed through gluetun's netns)
       - "${GLUETUN_CONTROL_PORT}:8000"  # gluetun control server (port lookup, status, etc.)
