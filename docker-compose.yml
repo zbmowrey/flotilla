@@ -204,6 +204,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/gluetun:/gluetun
+      - ./config/gluetun-auth.toml:/gluetun/auth/config.toml:ro
     ports:
       - "${QBITTORRENT_UI_PORT}:8080"   # qbittorrent webUI (exposed through gluetun's netns)
       - "${GLUETUN_CONTROL_PORT}:8000"  # gluetun control server (port lookup, status, etc.)
@@ -251,7 +252,7 @@ services:
       - |
         apk add --no-cache curl jq >/dev/null
         while true; do
-          port=$$(curl -fsS http://localhost:8000/v1/openvpn/portforwarded 2>/dev/null | jq -r '.port // empty')
+          port=$$(curl -fsSL http://localhost:8000/v1/portforward 2>/dev/null | jq -r '.port // empty')
           if [ -n "$$port" ] && [ "$$port" != "0" ]; then
             curl -fsS --cookie-jar /tmp/c \
               -d "username=$$QBITTORRENT_USERNAME&password=$$QBITTORRENT_PASSWORD" \

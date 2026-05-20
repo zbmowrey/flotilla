@@ -1,0 +1,15 @@
+# Gluetun control-server auth config.
+# Mounted into the gluetun container at /gluetun/auth/config.toml.
+# Allows the qbit-port-sync sidecar to read the forwarded port without an
+# API key — safe because the control server is only reachable from inside
+# gluetun's network namespace (i.e. from qbittorrent and qbit-port-sync).
+
+[[roles]]
+name = "public"
+routes = ["GET /v1/publicip/ip"]
+auth = "none"
+
+[[roles]]
+name = "qbit-port-sync"
+routes = ["GET /v1/openvpn/portforwarded", "GET /v1/portforward"]
+auth = "none"

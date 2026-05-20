@@ -3,3 +3,4 @@ openvpn_user
 openvpn_password
 .idea
 inventory/
+__pycache__/
