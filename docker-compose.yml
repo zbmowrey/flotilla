@@ -132,23 +132,6 @@ services:
     restart: unless-stopped
     network_mode: host
 
-  # Books
-
-  readarr:
-    image: lscr.io/linuxserver/readarr:develop
-    container_name: readarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TZ}
-    volumes:
-      - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${FLOTILLA_DIR}/readarr:/config
-      - ${BOOKS_DIR}:/books
-    ports:
-      - "${READARR_UI_PORT}:8787"
-    restart: unless-stopped
-
   # Audiobooks / Podcasts
 
   audiobookshelf:
