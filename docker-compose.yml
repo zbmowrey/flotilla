@@ -275,5 +275,4 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_INCLUDE_RESTARTING=true
       - WATCHTOWER_SCHEDULE=${WATCHTOWER_SCHEDULE}
-      - WATCHTOWER_ROLLING_RESTART=true
     restart: unless-stopped
