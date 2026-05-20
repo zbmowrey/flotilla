@@ -184,25 +184,6 @@ services:
     restart: unless-stopped
     network_mode: host
 
-  # Object Storage
-
-  minio:
-    image: docker.io/bitnami/minio:2022
-    container_name: minio
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKETS}
-    volumes:
-      - ${MINIO_DATA_DIR}:/data
-    ports:
-      - "${MINIO_API_PORT}:9000"
-      - "${MINIO_CONSOLE_PORT}:9001"
-    restart: unless-stopped
-    network_mode: host
-
   # Music streaming (Subsonic-compatible)
 
   navidrome:
