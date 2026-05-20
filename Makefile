@@ -20,7 +20,7 @@ LOCAL_PATH := .
 # Python interpreter for helper scripts
 PYTHON := python3
 
-.PHONY: push pull inventory
+.PHONY: push pull inventory deploy redeploy
 
 ## Sync from local to remote (push)
 push:
@@ -33,3 +33,11 @@ pull:
 ## Snapshot the Portainer host into ./inventory/
 inventory:
 	$(PYTHON) scripts/portainer_inventory.py
+
+## Create the flotilla stack in Portainer (first run) or redeploy with image pull
+deploy:
+	$(PYTHON) scripts/portainer_stack_deploy.py
+
+## Force-recreate the flotilla stack (deletes and recreates)
+redeploy:
+	$(PYTHON) scripts/portainer_stack_deploy.py --force-create
