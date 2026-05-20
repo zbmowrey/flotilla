@@ -144,7 +144,7 @@ services:
     volumes:
       - ${SABNZBD_COMPLETE_DIR}:/downloads
       - ${FLOTILLA_DIR}/readarr:/config
-      - ${AUDIOBOOKS_DIR}:/books
+      - ${BOOKS_DIR}:/books
     ports:
       - "${READARR_UI_PORT}:8787"
     restart: unless-stopped
@@ -202,3 +202,114 @@ services:
       - "${MINIO_CONSOLE_PORT}:9001"
     restart: unless-stopped
     network_mode: host
+
+  # Music streaming (Subsonic-compatible)
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    environment:
+      - ND_LOGLEVEL=info
+      - ND_PORT=4533
+    volumes:
+      - ${FLOTILLA_DIR}/navidrome:/data
+      - ${MUSIC_DIR}:/music:ro
+    ports:
+      - "${NAVIDROME_UI_PORT}:4533"
+    restart: unless-stopped
+
+  # VPN gateway — qbittorrent (and its port-sync helper) share this container's
+  # network namespace. PIA port forwarding gets us a public-reachable port.
+
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=private internet access
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${PIA_USER}
+      - OPENVPN_PASSWORD=${PIA_PASS}
+      - SERVER_REGIONS=${PIA_REGION}
+      - VPN_PORT_FORWARDING=on
+      - VPN_PORT_FORWARDING_PROVIDER=private internet access
+      - HTTP_CONTROL_SERVER_LOG=off
+      - TZ=${TZ}
+    volumes:
+      - ${FLOTILLA_DIR}/gluetun:/gluetun
+    ports:
+      - "${QBITTORRENT_UI_PORT}:8080"   # qbittorrent webUI (exposed through gluetun's netns)
+      - "${GLUETUN_CONTROL_PORT}:8000"  # gluetun control server (port lookup, status, etc.)
+    restart: unless-stopped
+
+  # Torrent client routed through gluetun (no own ports — uses gluetun's netns)
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+    volumes:
+      - ${FLOTILLA_DIR}/qbittorrent:/config
+      - ${TRANSMISSION_TV_COMPLETE_DIR}:/downloads/tv
+      - ${TRANSMISSION_TV_WATCH_DIR}:/watch/tv
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/downloads/movies
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/watch/movies
+    restart: unless-stopped
+
+  # Polls gluetun's control API for the forwarded port, then pokes
+  # qbittorrent's Web API to update its listening port to match. Runs every
+  # 5 minutes; the forwarded port is stable across a gluetun session so most
+  # iterations are no-ops.
+
+  qbit-port-sync:
+    image: alpine:latest
+    container_name: qbit-port-sync
+    network_mode: "service:gluetun"
+    depends_on:
+      - qbittorrent
+    environment:
+      - QBITTORRENT_USERNAME=${QBITTORRENT_USERNAME}
+      - QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD}
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl jq >/dev/null
+        while true; do
+          port=$$(curl -fsS http://localhost:8000/v1/openvpn/portforwarded 2>/dev/null | jq -r '.port // empty')
+          if [ -n "$$port" ] && [ "$$port" != "0" ]; then
+            curl -fsS --cookie-jar /tmp/c \
+              -d "username=$$QBITTORRENT_USERNAME&password=$$QBITTORRENT_PASSWORD" \
+              http://localhost:8080/api/v2/auth/login >/dev/null 2>&1 || true
+            curl -fsS -b /tmp/c \
+              -d "json={\"listen_port\":$$port,\"random_port\":false,\"upnp\":false}" \
+              http://localhost:8080/api/v2/app/setPreferences >/dev/null 2>&1 || true
+          fi
+          sleep 300
+        done
+
+  # Image auto-updates. Daily at 04:00 host time; cleans dangling images.
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=${TZ}
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_SCHEDULE=${WATCHTOWER_SCHEDULE}
+      - WATCHTOWER_ROLLING_RESTART=true
+    restart: unless-stopped
