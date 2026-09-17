@@ -3,7 +3,7 @@ services:
   # NZB Download Client
 
   sabnzbd:
-    image: ghcr.io/linuxserver/sabnzbd
+    image: ghcr.io/linuxserver/sabnzbd:5.1.3-ls273
     container_name: sabnzbd
     environment:
       - PUID=1000
@@ -21,7 +21,7 @@ services:
   # Media Requests & Discovery
 
   overseerr:
-    image: lscr.io/linuxserver/overseerr:latest
+    image: lscr.io/linuxserver/overseerr:v1.35.0-ls158
     container_name: overseerr
     environment:
       - PUID=1000
@@ -34,10 +34,10 @@ services:
     restart: unless-stopped
     network_mode: bridge
 
-  # Prowlarr - NZB Indexer Proxy
+  # Prowlarr - NZB Indexer Proxy (stable channel since 2026-09-16; was develop)
 
   prowlarr:
-    image: ghcr.io/linuxserver/prowlarr:develop
+    image: ghcr.io/linuxserver/prowlarr:2.6.5.5623-ls161
     container_name: prowlarr
     environment:
       - PUID=1000
@@ -55,7 +55,7 @@ services:
   # Television
 
   sonarr:
-    image: ghcr.io/linuxserver/sonarr
+    image: ghcr.io/linuxserver/sonarr:4.0.20.3014-ls325
     container_name: sonarr
     environment:
       - PUID=1000
@@ -75,7 +75,7 @@ services:
   # Movies
 
   radarr:
-    image: ghcr.io/linuxserver/radarr
+    image: ghcr.io/linuxserver/radarr:6.4.4.10685-ls317
     container_name: radarr
     environment:
       - PUID=1000
@@ -95,7 +95,7 @@ services:
   # Music
 
   lidarr:
-    image: ghcr.io/linuxserver/lidarr
+    image: ghcr.io/linuxserver/lidarr:3.1.0.4875-ls41
     container_name: lidarr
     environment:
       - PUID=1000
@@ -115,7 +115,7 @@ services:
   # Subtitles
 
   bazarr:
-    image: ghcr.io/linuxserver/bazarr
+    image: ghcr.io/linuxserver/bazarr:v1.6.1-ls364
     container_name: bazarr
     environment:
       - PUID=1000
@@ -135,7 +135,7 @@ services:
   # Audiobooks / Podcasts
 
   audiobookshelf:
-    image: ghcr.io/advplyr/audiobookshelf:latest
+    image: ghcr.io/advplyr/audiobookshelf:2.36.1
     container_name: audiobookshelf
     environment:
       - TZ=${TZ}
@@ -151,7 +151,7 @@ services:
   # Adult
 
   whisparr:
-    image: ghcr.io/hotio/whisparr
+    image: ghcr.io/hotio/whisparr:v2
     container_name: whisparr
     environment:
       - PUID=1000
@@ -170,7 +170,7 @@ services:
   # Music streaming (Subsonic-compatible)
 
   navidrome:
-    image: deluan/navidrome:latest
+    image: deluan/navidrome:0.64.0
     container_name: navidrome
     environment:
       - ND_LOGLEVEL=info
@@ -186,7 +186,7 @@ services:
   # network namespace. PIA port forwarding gets us a public-reachable port.
 
   gluetun:
-    image: qmcgaw/gluetun:latest
+    image: qmcgaw/gluetun:v3.41.3
     container_name: gluetun
     cap_add:
       - NET_ADMIN
@@ -215,7 +215,7 @@ services:
   # Torrent client routed through gluetun (no own ports — uses gluetun's netns)
 
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
+    image: lscr.io/linuxserver/qbittorrent:5.2.3_v2.0.14-ls476
     container_name: qbittorrent
     network_mode: "service:gluetun"
     depends_on:
@@ -239,7 +239,7 @@ services:
   # iterations are no-ops.
 
   qbit-port-sync:
-    image: alpine:latest
+    image: alpine:3.24
     container_name: qbit-port-sync
     network_mode: "service:gluetun"
     depends_on:
@@ -265,17 +265,3 @@ services:
           fi
           sleep 300
         done
-
-  # Image auto-updates. Daily at 04:00 host time; cleans dangling images.
-
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - TZ=${TZ}
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_INCLUDE_RESTARTING=true
-      - WATCHTOWER_SCHEDULE=${WATCHTOWER_SCHEDULE}
-    restart: unless-stopped

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":disableDependencyDashboard"],
+  "enabledManagers": ["docker-compose"],
+  "docker-compose": { "managerFilePatterns": ["/^docker-compose\\.ya?ml$/"] },
+  "packageRules": [
+    {
+      "description": "linuxserver images: X.Y.Z.B-lsN tags; treat as loose semver, one PR per image",
+      "matchPackageNames": ["/^(ghcr\\.io|lscr\\.io)\\/linuxserver\\//"],
+      "versioning": "loose",
+      "groupName": null
+    },
+    {
+      "description": "gluetun: releases only (v3.x.y), never master builds",
+      "matchPackageNames": ["qmcgaw/gluetun"],
+      "allowedVersions": "/^v3\\.\\d+\\.\\d+$/"
+    },
+    {
+      "description": "auto-merge patch bumps of the small non-arr services after the checks pass",
+      "matchPackageNames": ["deluan/navidrome", "ghcr.io/advplyr/audiobookshelf", "alpine"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    }
+  ],
+  "schedule": ["before 6am on saturday"],
+  "timezone": "America/New_York",
+  "prConcurrentLimit": 4
+}
