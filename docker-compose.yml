@@ -65,8 +65,7 @@ services:
       - ${FLOTILLA_DIR}/sonarr:/config
       - ${TV_DIR}:/tv
       - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TRANSMISSION_TV_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_TV_COMPLETE_DIR}:/torrent_complete
+      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
     ports:
       - "${SONARR_UI_PORT}:8989"
     restart: unless-stopped
@@ -85,8 +84,7 @@ services:
       - ${FLOTILLA_DIR}/radarr:/config
       - ${MOVIES_DIR}:/movies
       - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
+      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
     ports:
       - "${RADARR_UI_PORT}:7878"
     restart: unless-stopped
@@ -105,8 +103,7 @@ services:
       - ${FLOTILLA_DIR}/lidarr:/config
       - ${MUSIC_DIR}:/music
       - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
+      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
     ports:
       - "${LIDARR_UI_PORT}:8686"
     restart: unless-stopped
@@ -146,8 +143,7 @@ services:
       - ${AUDIOBOOKS_DIR}:/audiobooks
       - ${BOOKS_DIR}:/ebooks
       - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
+      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
     restart: unless-stopped
     network_mode: host
 
@@ -180,6 +176,7 @@ services:
     volumes:
       - ${FLOTILLA_DIR}/whisparr:/config
       - ${SABNZBD_COMPLETE_DIR}:/downloads
+      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
       - ${ADULT_DIR}:/data
     ports:
       - "${WHISPARR_UI_PORT}:6969"
@@ -219,6 +216,8 @@ services:
       - SERVER_REGIONS=${PIA_REGION}
       - VPN_PORT_FORWARDING=on
       - VPN_PORT_FORWARDING_PROVIDER=private internet access
+      # Refresh the provider server list daily; a stale list (April 2026 IPs) took the VPN down on 2026-09-25.
+      - UPDATER_PERIOD=24h
       - HTTP_CONTROL_SERVER_LOG=off
       - TZ=${TZ}
     volumes:
@@ -246,10 +245,9 @@ services:
       - WEBUI_PORT=8080
     volumes:
       - ${FLOTILLA_DIR}/qbittorrent:/config
-      - ${TRANSMISSION_TV_COMPLETE_DIR}:/downloads/tv
-      - ${TRANSMISSION_TV_WATCH_DIR}:/watch/tv
-      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/downloads/movies
-      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/watch/movies
+      # One torrent tree at the same path in qbittorrent and every arr, so no remote path
+      # mappings: /torrents/incomplete while downloading, /torrents/complete/<category> after.
+      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
     restart: unless-stopped
 
   # Polls gluetun's control API for the forwarded port, then pokes
