@@ -132,6 +132,25 @@ services:
     restart: unless-stopped
     network_mode: host
 
+  # Books (audiobooks + ebooks). Readarr successor; beta. Host network, UI on 8789.
+
+  chaptarr:
+    image: chaptarr/chaptarr:0.9.958
+    container_name: chaptarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:
+      - ${FLOTILLA_DIR}/chaptarr:/config
+      - ${AUDIOBOOKS_DIR}:/audiobooks
+      - ${BOOKS_DIR}:/ebooks
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
+      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
+    restart: unless-stopped
+    network_mode: host
+
   # Audiobooks / Podcasts
 
   audiobookshelf:
