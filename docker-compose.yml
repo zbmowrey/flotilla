@@ -18,22 +18,6 @@ services:
     restart: unless-stopped
     network_mode: host
 
-  # Media Requests & Discovery
-
-  overseerr:
-    image: lscr.io/linuxserver/overseerr:v1.35.0-ls158
-    container_name: overseerr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TZ}
-    volumes:
-      - ${FLOTILLA_DIR}/overseerr:/config
-    ports:
-      - "${OVERSEERR_UI_PORT}:5055"
-    restart: unless-stopped
-    network_mode: bridge
-
   # Prowlarr - NZB Indexer Proxy (stable channel since 2026-09-16; was develop)
 
   prowlarr:
@@ -188,9 +172,13 @@ services:
   navidrome:
     image: deluan/navidrome:0.64.0
     container_name: navidrome
+    user: "1000:1000"
     environment:
       - ND_LOGLEVEL=info
       - ND_PORT=4533
+      - ND_BACKUP_PATH=/data/backup
+      - ND_BACKUP_SCHEDULE=0 3 * * *
+      - ND_BACKUP_COUNT=7
     volumes:
       - ${FLOTILLA_DIR}/navidrome:/data
       - ${MUSIC_DIR}:/music:ro
