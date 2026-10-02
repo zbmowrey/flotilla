@@ -29,8 +29,6 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/prowlarr:/config
-      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
     ports:
       - "${PROWLARR_UI_PORT}:9696"
     restart: unless-stopped
@@ -106,8 +104,6 @@ services:
       - ${FLOTILLA_DIR}/bazarr:/config
       - ${MOVIES_DIR}:/movies
       - ${TV_DIR}:/tv
-      - ${TRANSMISSION_MOVIES_WATCH_DIR}:/torrent_watch
-      - ${TRANSMISSION_MOVIES_COMPLETE_DIR}:/torrent_complete
     ports:
       - "${BAZARR_UI_PORT}:6767"
     restart: unless-stopped
