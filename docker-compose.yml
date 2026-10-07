@@ -126,6 +126,10 @@ services:
       - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
     restart: unless-stopped
     network_mode: host
+    # Leaked to ~9 GB over 3 days (2026-10-06), swapped the NAS dry and wedged nfsd.
+    # Cap it so the OOM killer takes chaptarr, not the whole box.
+    mem_limit: 1g
+    memswap_limit: 1g
 
   # Audiobooks / Podcasts
 
