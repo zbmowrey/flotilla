@@ -149,27 +149,9 @@ services:
 
   # Adult
 
-  whisparr:
-    image: ghcr.io/hotio/whisparr:v2-2.2.0-release.231
-    container_name: whisparr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - UMASK=002
-      - TZ=${TZ}
-    volumes:
-      - ${FLOTILLA_DIR}/whisparr:/config
-      - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
-      - ${ADULT_DIR}:/data
-    ports:
-      - "${WHISPARR_UI_PORT}:6969"
-    restart: unless-stopped
-    network_mode: host
-
   # Whisparr v3 ("Eros", Radarr-based): movies and scenes, monitored by studio or performer.
-  # Runs beside v2 while it is evaluated; separate database, no migration from v2. Bridge
-  # network because v2 holds 6969 on the host; reach SABnzbd/qBittorrent at the NAS address.
+  # Replaced v2 on 2026-10-24. Bridge network, so it reaches SABnzbd/qBittorrent at the NAS
+  # address, not localhost. Root /data holds import/, movies/ and scenes/.
 
   whisparr3:
     image: ghcr.io/hotio/whisparr:v3-3.5.0-release.1585
