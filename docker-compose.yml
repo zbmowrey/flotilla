@@ -294,7 +294,8 @@ services:
       - sh
       - -c
       - |
-        apk add --no-cache curl jq >/dev/null
+        # Shares gluetun's netns: at startup the tunnel may not be up yet, so retry until the tools install.
+        until apk add --no-cache curl jq >/dev/null 2>&1; do sleep 15; done
         while true; do
           port=$$(curl -fsSL http://localhost:8000/v1/portforward 2>/dev/null | jq -r '.port // empty')
           if [ -n "$$port" ] && [ "$$port" != "0" ]; then
