@@ -167,6 +167,40 @@ services:
     restart: unless-stopped
     network_mode: host
 
+  # Adult library organizer. Runs as root (upstream default) so it can open /dev/dri
+  # (root:root 0660 on ADM). The image's ffmpeg has VAAPI but no Intel driver, so
+  # intel-media-driver is added at start (h264_vaapi verified on the N5105 2026-10-24;
+  # QSV does not init, use VAAPI). If apk fails Stash still starts, software-only.
+  # Media is read-only; Stash writes only under its config dir.
+
+  stash:
+    image: stashapp/stash:v0.31.1
+    container_name: stash
+    environment:
+      - TZ=${TZ}
+      - STASH_CONFIG_FILE=/config/config.yml
+      - STASH_GENERATED=/config/generated/
+      - STASH_METADATA=/config/metadata/
+      - STASH_CACHE=/config/cache/
+      - STASH_PORT=9999
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ${FLOTILLA_DIR}/stash:/config
+      - ${ADULT_DIR}:/data/adult:ro
+      - ${PRIVATE_MOVIES_DIR:-/volume1/Media/private_movies}:/data/private_movies:ro
+      - ${PRIVATE_TV_DIR:-/volume1/Media/private_tv}:/data/private_tv:ro
+      - ${CAM_VIDEOS_DIR:-/volume1/Media/cam_videos}:/data/cam_videos:ro
+    command:
+      - sh
+      - -c
+      - apk add --no-cache intel-media-driver >/dev/null 2>&1 || echo "intel-media-driver install failed; no hw transcode"; exec stash
+    ports:
+      - "${STASH_UI_PORT:-9999}:9999"
+    restart: unless-stopped
+    mem_limit: 2g
+    memswap_limit: 2g
+
   # Music streaming (Subsonic-compatible)
 
   navidrome:
