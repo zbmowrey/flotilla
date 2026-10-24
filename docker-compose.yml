@@ -150,7 +150,7 @@ services:
   # Adult
 
   whisparr:
-    image: ghcr.io/hotio/whisparr:v2
+    image: ghcr.io/hotio/whisparr:v2-2.2.0-release.231
     container_name: whisparr
     environment:
       - PUID=1000
@@ -166,6 +166,27 @@ services:
       - "${WHISPARR_UI_PORT}:6969"
     restart: unless-stopped
     network_mode: host
+
+  # Whisparr v3 ("Eros", Radarr-based): movies and scenes, monitored by studio or performer.
+  # Runs beside v2 while it is evaluated; separate database, no migration from v2. Bridge
+  # network because v2 holds 6969 on the host; reach SABnzbd/qBittorrent at the NAS address.
+
+  whisparr3:
+    image: ghcr.io/hotio/whisparr:v3-3.5.0-release.1585
+    container_name: whisparr3
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=002
+      - TZ=${TZ}
+    volumes:
+      - ${FLOTILLA_DIR}/whisparr3:/config
+      - ${SABNZBD_COMPLETE_DIR}:/downloads
+      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
+      - ${ADULT_DIR}:/data
+    ports:
+      - "${WHISPARR3_UI_PORT:-6970}:6969"
+    restart: unless-stopped
 
   # Adult library organizer. Runs as root (upstream default) so it can open /dev/dri
   # (root:root 0660 on ADM). The image's ffmpeg has VAAPI but no Intel driver, so
