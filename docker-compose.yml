@@ -18,21 +18,8 @@ services:
     restart: unless-stopped
     network_mode: host
 
-  # Prowlarr - NZB Indexer Proxy (stable channel since 2026-09-16; was develop)
-
-  prowlarr:
-    image: ghcr.io/linuxserver/prowlarr:2.6.5.5623-ls165
-    container_name: prowlarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=${TZ}
-    volumes:
-      - ${FLOTILLA_DIR}/prowlarr:/config
-    ports:
-      - "${PROWLARR_UI_PORT}:9696"
-    restart: unless-stopped
-    network_mode: host
+  # Prowlarr moved to the k8s cluster 2026-10-26 (http://192.168.1.153:9696, ~/code/k8s infra/prowlarr).
+  # Its old config dir .flotilla/prowlarr is kept on the NAS as a rollback copy.
 
   # Television
 
