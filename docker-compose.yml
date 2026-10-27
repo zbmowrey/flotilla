@@ -21,6 +21,15 @@ services:
   # Prowlarr moved to the k8s cluster 2026-10-26 (http://192.168.1.153:9696, ~/code/k8s infra/prowlarr).
   # Its old config dir .flotilla/prowlarr is kept on the NAS as a rollback copy.
 
+  # The arr apps (sonarr, radarr, lidarr, bazarr, chaptarr, whisparr3) mount /volume1 at the
+  # same path and nothing else besides /config. Downloads and the library must sit under ONE
+  # mount: rename() across separate bind mounts fails with EXDEV, which turned every import into
+  # a full copy and made torrent hardlinks impossible. Their stored paths are /volume1/...;
+  # SABnzbd and qBittorrent keep /downloads and /torrents, translated by each app's remote path
+  # mappings. The common parent of Downloads/ and Media/ is the volume itself, so each of these
+  # containers sees all of /volume1 (as PUID 1000). The data lives in the k8s cluster's Postgres
+  # for sonarr/radarr/lidarr/whisparr3 (config.xml), see k8s docs/arr-postgres.md.
+
   # Television
 
   sonarr:
@@ -32,9 +41,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/sonarr:/config
-      - ${TV_DIR}:/tv
-      - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
+      - /volume1:/volume1
     ports:
       - "${SONARR_UI_PORT}:8989"
     restart: unless-stopped
@@ -51,9 +58,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/radarr:/config
-      - ${MOVIES_DIR}:/movies
-      - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
+      - /volume1:/volume1
     ports:
       - "${RADARR_UI_PORT}:7878"
     restart: unless-stopped
@@ -70,9 +75,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/lidarr:/config
-      - ${MUSIC_DIR}:/music
-      - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
+      - /volume1:/volume1
     ports:
       - "${LIDARR_UI_PORT}:8686"
     restart: unless-stopped
@@ -89,8 +92,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/bazarr:/config
-      - ${MOVIES_DIR}:/movies
-      - ${TV_DIR}:/tv
+      - /volume1:/volume1
     ports:
       - "${BAZARR_UI_PORT}:6767"
     restart: unless-stopped
@@ -107,10 +109,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/chaptarr:/config
-      - ${AUDIOBOOKS_DIR}:/audiobooks
-      - ${BOOKS_DIR}:/ebooks
-      - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
+      - /volume1:/volume1
     restart: unless-stopped
     network_mode: host
     # Leaked to ~9 GB over 3 days (2026-10-06), swapped the NAS dry and wedged nfsd.
@@ -138,14 +137,7 @@ services:
 
   # Whisparr v3 ("Eros", Radarr-based): movies and scenes, monitored by studio or performer.
   # Replaced v2 on 2026-10-24. Bridge network, so it reaches SABnzbd/qBittorrent at the NAS
-  # address, not localhost. Root /data holds import/, movies/ and scenes/.
-  #
-  # /volume1 is mounted at the same path so downloads and the library sit under ONE mount:
-  # rename() across separate bind mounts fails with EXDEV, which turned every import into a
-  # full copy and made hardlinks impossible. Phase 1 adds it alongside the old mounts; after
-  # Whisparr's paths are rewritten to /volume1/... the /downloads, /torrents and /data mounts
-  # go (phase 2). Common parent of Downloads/ and Media/ is the volume itself, so this exposes
-  # all of /volume1 to the container (as PUID 1000).
+  # address, not localhost. Root /volume1/Media/adult holds import/, movies/ and scenes/.
 
   whisparr3:
     image: ghcr.io/hotio/whisparr:v3-3.5.0-release.1585
@@ -157,9 +149,6 @@ services:
       - TZ=${TZ}
     volumes:
       - ${FLOTILLA_DIR}/whisparr3:/config
-      - ${SABNZBD_COMPLETE_DIR}:/downloads
-      - ${TORRENTS_DIR:-/volume1/Downloads/qbittorrent}:/torrents
-      - ${ADULT_DIR}:/data
       - /volume1:/volume1
     ports:
       - "${WHISPARR3_UI_PORT:-6970}:6969"
