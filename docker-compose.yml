@@ -188,6 +188,33 @@ services:
     mem_limit: 2g
     memswap_limit: 2g
 
+  # Renders flix reels to one file with Quick Sync (flix wiki: features/reel-builds,
+  # runbooks/run-the-reel-builder). It asks flix for work once a minute; flix decides when
+  # (Build now, or 02:00 to 05:00 Eastern). Its code is copied to ${FLOTILLA_DIR}/reel-builder/app
+  # by flix's scripts/reel-builder.mjs deploy. apk's exit status is ignored on purpose: its
+  # triggers are killed on this NAS although the packages install; node and ffmpeg are checked.
+
+  reel-builder:
+    image: alpine:3.24
+    container_name: reel-builder
+    environment:
+      - TZ=${TZ}
+      - FLIX_URL=${FLIX_URL:-http://192.168.1.152}
+      - REELS_DIR=/reels
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ${FLOTILLA_DIR}/reel-builder/app:/app:ro
+      - ${ADULT_DIR}:/data/adult:ro
+      - ${ADULT_DIR}/reels:/reels
+    command:
+      - sh
+      - -c
+      - apk add --no-cache --quiet nodejs ffmpeg intel-media-driver >/dev/null 2>&1; command -v node >/dev/null && command -v ffmpeg >/dev/null || { echo "node or ffmpeg did not install"; exit 1; }; exec node /app/apps/server/src/reelBuilder.ts
+    restart: unless-stopped
+    mem_limit: 2g
+    memswap_limit: 2g
+
   # Music streaming (Subsonic-compatible)
 
   navidrome:
