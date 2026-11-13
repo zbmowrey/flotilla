@@ -215,6 +215,35 @@ services:
     mem_limit: 2g
     memswap_limit: 2g
 
+  # Keeps the compliance.md beside every adult video current (flix wiki:
+  # runbooks/compliance-sweep). Every 10 minutes it asks Stash for every scene, renders each
+  # file and writes only those whose content differs (a few seconds, usually nothing written);
+  # it never deletes and does not depend on flix. Its code is copied to
+  # ${FLOTILLA_DIR}/compliance-sweep/app by flix's scripts/compliance-sweep.mjs deploy; the
+  # Stash API key is the root-only file beside it. Runs as root to read that key and gives
+  # each file to its folder's owner. apk's exit status is ignored as for reel-builder.
+
+  compliance-sweep:
+    image: alpine:3.24
+    container_name: compliance-sweep
+    environment:
+      - TZ=${TZ}
+      - STASH_URL=${STASH_URL:-http://192.168.0.10:9999}
+      - STASH_API_KEY_FILE=/run/stash.key
+      - LIBRARY_ROOT=/library
+      - EVERY_MINUTES=10
+    volumes:
+      - ${FLOTILLA_DIR}/compliance-sweep/app:/app:ro
+      - ${FLOTILLA_DIR}/compliance-sweep/stash.key:/run/stash.key:ro
+      - ${ADULT_DIR}:/library
+    command:
+      - sh
+      - -c
+      - apk add --no-cache --quiet nodejs >/dev/null 2>&1; command -v node >/dev/null || { echo "node did not install"; exit 1; }; exec node /app/scripts/lib/compliance-sweep.mjs
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+
   # Music streaming (Subsonic-compatible)
 
   navidrome:
