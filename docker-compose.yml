@@ -101,11 +101,9 @@ services:
   # Books (audiobooks + ebooks). Readarr successor; beta. Host network, UI on 8789.
 
   chaptarr:
-    image: chaptarr/chaptarr:0.9.965
+    # 0.9.1000 is a develop-channel build (stable `latest` was still 0.9.965 on 2026-11-14).
+    image: chaptarr/chaptarr:0.9.1000
     container_name: chaptarr
-    # Off by choice (2026-11-13): deploys leave it stopped. It OOM-looped at mem_limit during author
-    # refreshes, and it had been stopped by hand since 2026-10-24. Remove this line to bring it back.
-    profiles: [disabled]
     environment:
       - PUID=1000
       - PGID=1000
@@ -116,9 +114,10 @@ services:
     restart: unless-stopped
     network_mode: host
     # Leaked to ~9 GB over 3 days (2026-10-06), swapped the NAS dry and wedged nfsd.
-    # Cap it so the OOM killer takes chaptarr, not the whole box.
-    mem_limit: 1g
-    memswap_limit: 1g
+    # Cap it so the OOM killer takes chaptarr, not the whole box. 1g was too small for big author
+    # refreshes (OOM-looped 2026-11-13), raised to 2g 2026-11-14.
+    mem_limit: 2g
+    memswap_limit: 2g
 
   # Audiobooks / Podcasts
 
