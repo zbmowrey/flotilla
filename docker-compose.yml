@@ -103,6 +103,9 @@ services:
   chaptarr:
     image: chaptarr/chaptarr:0.9.965
     container_name: chaptarr
+    # Off by choice (2026-11-13): deploys leave it stopped. It OOM-looped at mem_limit during author
+    # refreshes, and it had been stopped by hand since 2026-10-24. Remove this line to bring it back.
+    profiles: [disabled]
     environment:
       - PUID=1000
       - PGID=1000
